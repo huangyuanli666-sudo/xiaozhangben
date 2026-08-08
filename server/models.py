@@ -1,12 +1,16 @@
 """数据模型"""
+import os
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, Text, DateTime
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from datetime import datetime, timezone, timedelta
 
-import os
-DB_FILE = "data_dev.db" if os.environ.get("DEV_MODE") else "data.db"
-DB_URL = "sqlite:///" + DB_FILE
-engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
+# 生产环境用 PostgreSQL（DATABASE_URL 环境变量），本地开发默认 SQLite
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///data_dev.db")
+if DATABASE_URL.startswith("postgresql://"):
+    engine = create_engine(DATABASE_URL, echo=False)
+else:
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, echo=False)
+
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 class Base(DeclarativeBase):
@@ -28,11 +32,11 @@ class Bill(Base):
     __tablename__ = "bills"
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, nullable=False, index=True)
-    type = Column(String(10), nullable=False)           # expense / income
-    amount = Column(Integer, nullable=False)             # 单位：分
+    type = Column(String(10), nullable=False)
+    amount = Column(Integer, nullable=False)
     category = Column(String(20), nullable=False)
     note = Column(Text, default="")
-    date = Column(String(10), nullable=False)            # YYYY-MM-DD
+    date = Column(String(10), nullable=False)
     created_at = Column(DateTime, default=tz_now)
 
 Base.metadata.create_all(bind=engine)
