@@ -8,4 +8,4 @@ services:
     plan: free
     envVars:
       - key: DATABASE_URL
-        value: postgresql://postgres:huangyuanli200168@db.jeqmisivqrnbizbifgbr.supabase.co:5432/postgres
+        value: postgresql://postgres:huangyuanli200168@db.jeqmisivqrnbizbifgbr.supabase.co:6543/postgres
