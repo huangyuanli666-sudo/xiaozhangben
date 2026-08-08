@@ -308,8 +308,8 @@ select, input[type=date], input[type=text]{
     </div>
     <div class="set-group" id="adminPanel" style="display:none">
       <div class="row"><span style="font-weight:700;">🛡️ 管理面板</span></div>
-      <div class="row" id="adminSummary" style="flex-wrap:wrap;gap:12px;justify-content:flex-start;"></div>
-      <div class="row" style="flex-direction:column;align-items:stretch;" id="adminUserList"></div>
+      <div class="row" id="adminSummary" style="flex-wrap:wrap;gap:8px;font-size:13px;color:var(--sub);"></div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:2px;" id="adminUserList"></div>
     </div>
     <div class="set-group">
       <div class="row"><span>小账本 v0.2（云同步版）</span></div>
@@ -638,18 +638,44 @@ async function loadAdminData(){
   try{
     var data = await api("GET","/api/admin/summary");
     var users = await api("GET","/api/admin/users");
-    s.innerHTML = '📊 用户 '+data.totalUsers+' | 账单 '+data.totalBills+' | 总支出 ¥'+(data.totalExpense/100).toLocaleString()+' | 总收入 ¥'+(data.totalIncome/100).toLocaleString();
+    s.innerHTML = '用户 <b>'+data.totalUsers+'</b> | 账单 <b>'+data.totalBills+'</b> | 总支出 <b style=\"color:var(--red)\">¥'+(data.totalExpense/100).toLocaleString()+'</b> | 总收入 <b style=\"color:var(--green)\">¥'+(data.totalIncome/100).toLocaleString()+'</b>';
+    s.innerHTML += ' <span style=\"font-size:11px;opacity:.7;\">（密码已加密存储，不可查看）</span>';
     var h = "";
     users.forEach(function(x){
-      h += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;">'
-        +'<span><b>'+esc(x.nickname||x.username)+'</b> '+(x.isAdmin?'👑':'')+'</span>'
-        +'<span style="color:var(--sub)">'+esc(x.username)+' · '+x.createdAt.slice(0,10)+'</span></div>';
+      h += '<div style="cursor:pointer;border-bottom:1px solid var(--line);padding:8px 0;" onclick="toggleUserBills('+x.id+',this,\''+esc(x.username)+'\')">'
+        +'<b>'+(x.nickname||x.username)+'</b> '+(x.isAdmin?'👑':'')
+        +'<span style=\"color:var(--sub);float:right;font-size:12px;\">'+esc(x.username)+' · '+x.createdAt.slice(0,10)+' 📋</span>'
+        +'<div id=\"ub-'+x.id+'\" style=\"display:none;margin-top:6px;padding-left:12px;font-size:12px;\"></div>'
+        +'</div>';
     });
     u.innerHTML = h || "(无)";
   }catch(e){
     s.innerHTML = "加载失败: "+e.message;
-    u.innerHTML = "";
   }
+}
+async function toggleUserBills(uid, el, uname){
+  var box = document.getElementById("ub-"+uid);
+  if(box.style.display === "block"){ box.style.display = "none"; return; }
+  if(box._loaded){ box.style.display = "block"; return; }
+  box.innerHTML = "加载中..."; box.style.display = "block";
+  try{
+    var bills = await api("GET","/api/admin/bills/"+uid);
+    if(!bills.length){ box.innerHTML = '<span style=\"color:var(--sub)\">暂无账单</span>'; }
+    else{
+      bills.sort(function(a,b){return a.date<b.date?1:-1;});
+      var h = "";
+      bills.forEach(function(b){
+        h += '<div style="padding:3px 0;">'
+          +b.date+' '+(b.type==="expense"?'<span style="color:var(--red)">-':'<span style="color:var(--green)">+')+'¥'+(b.amount/100).toFixed(2)+'</span> '
+          +esc(b.category)+(b.note?' '+esc(b.note):'')
+          +'</div>';
+      });
+      box.innerHTML = h;
+    }
+  }catch(e){
+    box.innerHTML = '<span style="color:var(--red)">加载失败: '+e.message+'</span>';
+  }
+  box._loaded = true;
 }
 
 /* ====== 视图切换 ====== */
