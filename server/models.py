@@ -4,12 +4,10 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, Text, Da
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from datetime import datetime, timezone, timedelta
 
-# 生产环境用 PostgreSQL（DATABASE_URL 环境变量），本地开发默认 SQLite
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///data_dev.db")
-if DATABASE_URL.startswith("postgresql"):
-    engine = create_engine(DATABASE_URL, echo=False)
-else:
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, echo=False)
+# 生产用 data.db（Git 跟踪），本地开发用 data_dev.db（不跟踪）
+DB_FILE = "data_dev.db" if os.environ.get("DEV_MODE") else "data.db"
+DB_URL = "sqlite:///" + DB_FILE
+engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
