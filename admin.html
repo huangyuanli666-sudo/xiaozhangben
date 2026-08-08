@@ -10,7 +10,7 @@
   --line:#e5e7eb; --primary:#0ea5a4; --red:#ef4444; --green:#10b981;
 }
 *{box-sizing:border-box;}
-body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; margin:0; background:var(--bg); color:var(--text);}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; margin:0; background:var(--bg); color:var(--text); min-height:100vh;}
 
 /* 登录 */
 #loginBox{max-width:380px; margin:12vh auto 0; padding:24px; background:var(--card); border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.08);}
@@ -46,7 +46,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
   <h1>📊 小账本管理后台</h1>
   <input type="text" id="adminUser" placeholder="管理员用户名" autocomplete="username">
   <input type="password" id="adminPass" placeholder="密码" autocomplete="current-password">
-  <button onclick="adminLogin()">登 录</button>
+  <button onclick="adminLogin()" id="loginSubmitBtn">登 录</button>
+  <div id="loginError" style="color:var(--red);font-size:13px;margin-top:10px;display:none;"></div>
 </div>
 
 <div id="mainPanel">
@@ -54,8 +55,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     <h1>📊 管理后台</h1>
     <button onclick="doLogout()">退出</button>
   </div>
-  <div class="summary" id="summary"></div>
-  <div class="users" id="userList"></div>
+  <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--sub);">加载中...</div>
+  <div class="summary" id="summary" style="display:none;"></div>
+  <div class="users" id="userList" style="display:none;"></div>
 </div>
 
 <script>
@@ -74,7 +76,10 @@ async function api(m, p, b){
 async function adminLogin(){
   const u = document.getElementById("adminUser").value.trim();
   const pw = document.getElementById("adminPass").value.trim();
-  if(!u||!pw) return alert("请填写用户名和密码");
+  if(!u||!pw) return;
+  const btn = document.getElementById("loginSubmitBtn");
+  const errEl = document.getElementById("loginError");
+  btn.disabled = true; btn.textContent = "登录中..."; errEl.style.display = "none";
   try{
     const r = await api("POST", "/api/login", { username: u, password: pw });
     token = r.token;
@@ -83,8 +88,15 @@ async function adminLogin(){
     localStorage.setItem("admin_token", token);
     document.getElementById("loginBox").style.display = "none";
     document.getElementById("mainPanel").style.display = "";
-    loadDashboard();
-  }catch(e){ alert(e.message); }
+    document.getElementById("loadingMsg").style.display = "";
+    await loadDashboard();
+    document.getElementById("loadingMsg").style.display = "none";
+    document.getElementById("summary").style.display = "";
+    document.getElementById("userList").style.display = "";
+  }catch(e){
+    errEl.textContent = e.message; errEl.style.display = "";
+    btn.disabled = false; btn.textContent = "登 录";
+  }
 }
 
 async function loadDashboard(){
@@ -132,13 +144,19 @@ async function toggleUser(uid, el){
 }
 
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function doLogout(){ token = ""; localStorage.removeItem("admin_token"); document.getElementById("loginBox").style.display=""; document.getElementById("mainPanel").style.display="none"; }
+function doLogout(){ token = ""; localStorage.removeItem("admin_token"); document.getElementById("loginBox").style.display=""; document.getElementById("mainPanel").style.display="none"; document.getElementById("loginError").style.display="none"; }
 
+// 自动登录
 if(token){
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("mainPanel").style.display = "";
+  document.getElementById("loadingMsg").style.display = "";
   api("GET", "/api/admin/summary").then(() => {
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("mainPanel").style.display = "";
-    loadDashboard();
+    return loadDashboard();
+  }).then(() => {
+    document.getElementById("loadingMsg").style.display = "none";
+    document.getElementById("summary").style.display = "";
+    document.getElementById("userList").style.display = "";
   }).catch(() => doLogout());
 }
 </script>
