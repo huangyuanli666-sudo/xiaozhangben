@@ -144,7 +144,7 @@ async function toggleUser(uid, el){
 }
 
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-function doLogout(){ token = ""; localStorage.removeItem("admin_token"); document.getElementById("loginBox").style.display=""; document.getElementById("mainPanel").style.display="none"; document.getElementById("loginError").style.display="none"; }
+function doLogout(){ token = ""; localStorage.removeItem("admin_token"); document.getElementById("loginBox").style.display=""; document.getElementById("mainPanel").style.display="none"; document.getElementById("loginError").style.display="none"; document.getElementById("loadingMsg").style.display="none"; }
 
 // 自动登录
 if(token){
