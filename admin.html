@@ -94,8 +94,13 @@ async function adminLogin(){
     document.getElementById("summary").style.display = "";
     document.getElementById("userList").style.display = "";
   }catch(e){
+    document.getElementById("loginBox").style.display = "";
+    document.getElementById("mainPanel").style.display = "none";
+    document.getElementById("loadingMsg").style.display = "none";
     errEl.textContent = e.message; errEl.style.display = "";
     btn.disabled = false; btn.textContent = "登 录";
+    localStorage.removeItem("admin_token");
+    token = "";
   }
 }
 
