@@ -306,6 +306,11 @@ select, input[type=date], input[type=text]{
       <div class="row"><span id="setUsername" style="color:var(--sub);font-size:13px;"></span></div>
       <div class="row"><button class="danger" onclick="doLogout()" style="width:100%;padding:11px 0;border-radius:10px;background:rgba(239,68,68,.12);color:var(--expense);border:none;font-size:14px;font-weight:600;cursor:pointer;">退出登录</button></div>
     </div>
+    <div class="set-group" id="adminPanel" style="display:none">
+      <div class="row"><span style="font-weight:700;">🛡️ 管理面板</span></div>
+      <div class="row" id="adminSummary" style="flex-wrap:wrap;gap:12px;justify-content:flex-start;"></div>
+      <div class="row" style="flex-direction:column;align-items:stretch;" id="adminUserList"></div>
+    </div>
     <div class="set-group">
       <div class="row"><span>小账本 v0.2（云同步版）</span></div>
       <div class="row"><span class="set-desc">数据云端存储，换手机登录即可同步。<br>离线时可继续记账，联网后自动上传。</span></div>
@@ -622,6 +627,29 @@ function renderSettings(){
   const pe = document.getElementById("catChipsExp"), pi = document.getElementById("catChipsInc");
   pe.innerHTML = getCats("expense").map(c => '<span class="chip">'+c[0]+' '+esc(c[1])+'</span>').join("");
   pi.innerHTML = getCats("income").map(c => '<span class="chip">'+c[0]+' '+esc(c[1])+'</span>').join("");
+  if(user && user.isAdmin){
+    document.getElementById("adminPanel").style.display = "";
+    loadAdminData();
+  }
+}
+async function loadAdminData(){
+  var s = document.getElementById("adminSummary"), u = document.getElementById("adminUserList");
+  s.innerHTML = "加载中..."; u.innerHTML = "";
+  try{
+    var data = await api("GET","/api/admin/summary");
+    var users = await api("GET","/api/admin/users");
+    s.innerHTML = '📊 用户 '+data.totalUsers+' | 账单 '+data.totalBills+' | 总支出 ¥'+(data.totalExpense/100).toLocaleString()+' | 总收入 ¥'+(data.totalIncome/100).toLocaleString();
+    var h = "";
+    users.forEach(function(x){
+      h += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;">'
+        +'<span><b>'+esc(x.nickname||x.username)+'</b> '+(x.isAdmin?'👑':'')+'</span>'
+        +'<span style="color:var(--sub)">'+esc(x.username)+' · '+x.createdAt.slice(0,10)+'</span></div>';
+    });
+    u.innerHTML = h || "(无)";
+  }catch(e){
+    s.innerHTML = "加载失败: "+e.message;
+    u.innerHTML = "";
+  }
 }
 
 /* ====== 视图切换 ====== */
