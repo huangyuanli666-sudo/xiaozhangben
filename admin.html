@@ -46,6 +46,9 @@ input{width:100%;padding:11px;margin-bottom:10px;border:1px solid #ddd;border-ra
 </div>
 
 <script>
+// 清除可能无效的旧 token 强制显示登录
+if(location.search.includes('fresh')){ localStorage.removeItem('at'); location.href = '/admin'; }
+
 const API = "";
 let token = localStorage.getItem("at") || "";
 
