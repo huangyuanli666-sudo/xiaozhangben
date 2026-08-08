@@ -67,10 +67,14 @@ let token = localStorage.getItem("admin_token") || "";
 async function api(m, p, b){
   const h = { "Content-Type": "application/json" };
   if(token) h["Authorization"] = "Bearer " + token;
-  const res = await fetch(API + p, { method: m, headers: h, body: b ? JSON.stringify(b) : undefined });
-  const d = await res.json().catch(() => ({}));
-  if(!res.ok) throw new Error(d.detail || "请求失败");
-  return d;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 15000);
+  try{
+    const res = await fetch(API + p, { method: m, headers: h, body: b ? JSON.stringify(b) : undefined, signal: ctrl.signal });
+    const d = await res.json().catch(() => ({}));
+    if(!res.ok) throw new Error(d.detail || "请求失败 (" + res.status + ")");
+    return d;
+  }finally{ clearTimeout(t); }
 }
 
 async function adminLogin(){
