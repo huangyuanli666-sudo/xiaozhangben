@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小账本 · 管理后台</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --text:#1a202c; --sub:#6b7280;
+  --line:#e5e7eb; --primary:#0ea5a4; --red:#ef4444; --green:#10b981;
+}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; margin:0; background:var(--bg); color:var(--text);}
+
+/* 登录 */
+#loginBox{max-width:380px; margin:12vh auto 0; padding:24px; background:var(--card); border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.08);}
+#loginBox h1{text-align:center; font-size:22px; margin:0 0 20px;}
+#loginBox input{width:100%; padding:11px; margin-bottom:10px; border:1px solid var(--line); border-radius:10px; font-size:15px;}
+#loginBox button{width:100%; padding:12px; border:none; border-radius:10px; background:var(--primary); color:#fff; font-size:15px; font-weight:700; cursor:pointer;}
+
+/* 主面板 */
+#mainPanel{display:none; max-width:900px; margin:0 auto; padding:16px 20px 40px;}
+.topbar{display:flex; justify-content:space-between; align-items:center; padding:8px 0 16px;}
+.topbar h1{font-size:20px; margin:0;}
+.topbar button{background:rgba(239,68,68,.12); color:var(--red); border:none; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;}
+
+.summary{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:12px; margin-bottom:20px;}
+.sum-card{background:var(--card); border-radius:12px; padding:14px 16px; text-align:center;}
+.sum-card .v{font-size:22px; font-weight:700;}
+.sum-card .k{font-size:12px; color:var(--sub); margin-top:2px;}
+
+.users{background:var(--card); border-radius:12px; overflow:hidden;}
+.users .row{display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); cursor:pointer;}
+.users .row:hover{background:var(--bg);}
+.users .row .uname{font-weight:600;}
+.users .row .umeta{font-size:12px; color:var(--sub);}
+
+.detail{display:none; background:var(--bg); padding:12px 0; border-bottom:1px solid var(--line);}
+.detail.open{display:block;}
+.detail .d-row{display:flex; justify-content:space-between; padding:6px 20px; font-size:13px;}
+.detail .d-row.exp{color:var(--red);} .detail .d-row.inc{color:var(--green);}
+</style>
+</head>
+<body>
+<div id="loginBox">
+  <h1>📊 小账本管理后台</h1>
+  <input type="text" id="adminUser" placeholder="管理员用户名" autocomplete="username">
+  <input type="password" id="adminPass" placeholder="密码" autocomplete="current-password">
+  <button onclick="adminLogin()">登 录</button>
+</div>
+
+<div id="mainPanel">
+  <div class="topbar">
+    <h1>📊 管理后台</h1>
+    <button onclick="doLogout()">退出</button>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div class="users" id="userList"></div>
+</div>
+
+<script>
+const API = "";
+let token = localStorage.getItem("admin_token") || "";
+
+async function api(m, p, b){
+  const h = { "Content-Type": "application/json" };
+  if(token) h["Authorization"] = "Bearer " + token;
+  const res = await fetch(API + p, { method: m, headers: h, body: b ? JSON.stringify(b) : undefined });
+  const d = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error(d.detail || "请求失败");
+  return d;
+}
+
+async function adminLogin(){
+  const u = document.getElementById("adminUser").value.trim();
+  const pw = document.getElementById("adminPass").value.trim();
+  if(!u||!pw) return alert("请填写用户名和密码");
+  try{
+    const r = await api("POST", "/api/login", { username: u, password: pw });
+    token = r.token;
+    const user = r.user;
+    if(!user.isAdmin) throw new Error("非管理员账号，无法进入后台");
+    localStorage.setItem("admin_token", token);
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("mainPanel").style.display = "";
+    loadDashboard();
+  }catch(e){ alert(e.message); }
+}
+
+async function loadDashboard(){
+  const [s, users] = await Promise.all([
+    api("GET", "/api/admin/summary"),
+    api("GET", "/api/admin/users")
+  ]);
+  document.getElementById("summary").innerHTML =
+    '<div class="sum-card"><div class="v">'+s.totalUsers+'</div><div class="k">用户数</div></div>'
+    +'<div class="sum-card"><div class="v">'+s.totalBills+'</div><div class="k">总账单</div></div>'
+    +'<div class="sum-card"><div class="v" style="color:var(--red)">¥'+(s.totalExpense/100).toLocaleString()+'</div><div class="k">总支出</div></div>'
+    +'<div class="sum-card"><div class="v" style="color:var(--green)">¥'+(s.totalIncome/100).toLocaleString()+'</div><div class="k">总收入</div></div>';
+  let html = "";
+  users.forEach(u => {
+    html += '<div class="row" onclick="toggleUser('+u.id+', this)">'
+      + '<span class="uname">'+esc(u.nickname||u.username)+'</span>'
+      + '<span class="umeta">'+esc(u.username)+(u.isAdmin?' · 管理员':'')+' · '+u.createdAt.slice(0,10)+'</span>'
+      + '</div><div class="detail" id="ud-'+u.id+'"></div>';
+  });
+  document.getElementById("userList").innerHTML = html;
+}
+
+let loadedUsers = {};
+async function toggleUser(uid, el){
+  const detail = document.getElementById("ud-" + uid);
+  if(detail.classList.contains("open")){ detail.classList.remove("open"); return; }
+  if(!loadedUsers[uid]){
+    try{
+      loadedUsers[uid] = await api("GET", "/api/admin/bills/" + uid);
+    }catch(e){ loadedUsers[uid] = []; }
+  }
+  const bills = loadedUsers[uid];
+  let html = "";
+  if(!bills.length){ html = '<div class="d-row" style="color:var(--sub)">暂无账单</div>'; }
+  else {
+    bills.sort((a,b) => a.date < b.date ? 1 : -1).forEach(b => {
+      html += '<div class="d-row '+(b.type==="expense"?"exp":"inc")+'">'
+        + '<span>'+b.date+' '+esc(b.category)+(b.note?' '+esc(b.note):'')+'</span>'
+        + '<span>'+(b.type==="expense"?"-":"+")+'¥'+(b.amount/100).toFixed(2)+'</span>'
+        + '</div>';
+    });
+  }
+  detail.innerHTML = html;
+  detail.classList.add("open");
+}
+
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function doLogout(){ token = ""; localStorage.removeItem("admin_token"); document.getElementById("loginBox").style.display=""; document.getElementById("mainPanel").style.display="none"; }
+
+if(token){
+  api("GET", "/api/admin/summary").then(() => {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("mainPanel").style.display = "";
+    loadDashboard();
+  }).catch(() => doLogout());
+}
+</script>
+</body>
+</html>

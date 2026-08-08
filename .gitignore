@@ -1,0 +1,17 @@
+# 数据库（每个部署实例独立）
+*.db
+# Python
+__pycache__/
+*.pyc
+*.pyo
+# IDE
+.vscode/
+.idea/
+# 临时文件
+*.tmp
+*.log
+# OS
+Thumbs.db
+.DS_Store
+# Reasonix
+.reasonix/
