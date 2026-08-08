@@ -1,0 +1,11 @@
+{
+  "name": "小账本",
+  "short_name": "小账本",
+  "description": "记账应用 · 云同步",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0ea5a4",
+  "theme_color": "#0ea5a4",
+  "icons": []
+}
