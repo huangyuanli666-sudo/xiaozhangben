@@ -186,6 +186,26 @@ def admin_page():
 def index_page():
     return FileResponse("../index.html")
 
+# ========== 启动时自动初始化 ==========
+@app.on_event("startup")
+def startup():
+    from models import SessionLocal, User
+    from auth import hash_password
+    db = SessionLocal()
+    try:
+        if not db.query(User).filter(User.is_admin == True).first():
+            admin = User(
+                username="admin",
+                password_hash=hash_password("admin123"),
+                nickname="管理员",
+                is_admin=True
+            )
+            db.add(admin)
+            db.commit()
+            print(">>> 管理员已自动创建: admin / admin123")
+    finally:
+        db.close()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
