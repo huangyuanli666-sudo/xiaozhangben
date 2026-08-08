@@ -3,7 +3,9 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, Text, Da
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from datetime import datetime, timezone, timedelta
 
-DB_URL = "sqlite:///data.db"
+import os
+DB_FILE = "data_dev.db" if os.environ.get("DEV_MODE") else "data.db"
+DB_URL = "sqlite:///" + DB_FILE
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False}, echo=False)
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 

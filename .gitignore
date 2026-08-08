@@ -1,7 +1,5 @@
-# 数据库（仅忽略临时/本地测试库，server/data.db 需被 Git 跟踪以保证 Render 数据持久化）
-*.db.backup
-*.db-journal
-*.db-wal
+# 数据库（data.db 是生产数据必须 Git 跟踪，data_dev.db 是本地测试库忽略）
+data_dev.db
 # Python
 __pycache__/
 *.pyc
