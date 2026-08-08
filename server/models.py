@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 # 生产环境用 PostgreSQL（DATABASE_URL 环境变量），本地开发默认 SQLite
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///data_dev.db")
-if DATABASE_URL.startswith("postgresql://"):
+if DATABASE_URL.startswith("postgresql"):
     engine = create_engine(DATABASE_URL, echo=False)
 else:
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False}, echo=False)
